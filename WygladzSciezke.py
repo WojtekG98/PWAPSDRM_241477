@@ -4,14 +4,15 @@ from ompl import geometric as og
 import PlanujSciezke
 import matplotlib.pyplot as plt
 from math import sqrt
+from math import pi
 import Astar
 import random
 
 
 N = 100.0
-radius = N / 5
+radius = 10
 center = [N / 2, N / 2]
-radius2 = 0
+radius2 = 10
 center2 = [3 * N / 4, N / 2]
 
 def isStateValid(state):
@@ -41,8 +42,31 @@ def plan(space, planner, runTime, start, goal):
         return None
 
 
+def print_path_txt(path):
+    plt.axis([0, N, 0, N])
+    verts = []
+    for line in path.split("\n"):
+        x = []
+        for item in line.split():
+            x.append(float(item))
+        if len(x) is not 0:
+            verts.append(list(x))
+    x = []
+    y = []
+    yaw = []
+    for i in range(0, len(verts)):
+        x.append(verts[i][0])
+        y.append(verts[i][1])
+        yaw.append(verts[i][2])
+    print(x)
+    print(y)
+    for i in range(0, len(yaw)):
+        yaw[i] = yaw[i]*180/pi
+    print(yaw)
+
+
 if __name__ == '__main__':
-    space = ob.ReedsSheppStateSpace(6)
+    space = ob.ReedsSheppStateSpace(2)
     bounds = ob.RealVectorBounds(2)
     bounds.setLow(0)
     bounds.setHigh(N)
@@ -62,13 +86,13 @@ if __name__ == '__main__':
             or not \
             sqrt((goal[0] - center2[0]) ** 2 + (goal[1] - center2[1]) ** 2) > radius2:
         goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
-
     path = plan(space, 'RRT', 30, start, goal)
     if path:
         PlanujSciezke.plot_path(path, 'r-')
     path = plan(space, 'Astar', 30, start, goal)
     if path:
         PlanujSciezke.plot_path(path, 'b-')
+        print_path_txt(path)
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
     circle1 = plt.Circle(center, radius, color='k')

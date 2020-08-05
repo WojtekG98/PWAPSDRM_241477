@@ -78,9 +78,14 @@ def plot_path(path, style):
             verts.append(list(x))
     x = []
     y = []
+    yaw = []
     for i in range(0, len(verts)):
         x.append(verts[i][0])
         y.append(verts[i][1])
+        yaw.append(verts[i][2])
+    print(x)
+    print(y)
+    print(yaw)
     plt.plot(x, y, style)
 
 

@@ -32,7 +32,7 @@ class Node():
         #return self.position[0] == other.position[0] and self.position[1] == other.position[1]
 
     def __str__(self):
-        return str(self.position[0]) + ", " + str(self.position[1]) + ", " + str(self.f)
+        return str(self.position.getX()) + ", " + str(self.position.getY()) + ", " + str(self.position.getYaw()*180/math.pi)
 
     def __lt__(self, other):
         return self.f < other.f
@@ -69,9 +69,8 @@ class Astar(ob.Planner):
         open_list = []
         closed_list = []
         heapq.heapify(open_list)
-        adjacent_squares = ((0, -1, 3 * math.pi / 2), (0, 1, math.pi / 2), (-1, 0, math.pi), (1, 0, 0),
-                            (-1, -1, 5 * math.pi / 4), (-1, 1, 3 * math.pi / 2), (1, -1, 7 * math.pi / 4),
-                            (1, 1, math.pi / 4))
+        adjacent_squares = ((1, 0, 0), (1, 1, 45), (0, 1, 90), (-1, 1, 135),
+                            (-1, 0, 0), (-1, -1, -135), (0, -1, -90), (1, -1, -45))
 
         heapq.heappush(open_list, start_node)
         while len(open_list) > 0 and not ptc():
@@ -92,23 +91,19 @@ class Astar(ob.Planner):
             children = []
             for new_position in adjacent_squares:
                 node_position = si.allocState()
-                # node_position = ob.State()
                 if isinstance(si.getStateSpace(), type(ob.ReedsSheppStateSpace(6))):
                     current_node_x = current_node.position.getX()
                     current_node_y = current_node.position.getY()
                     node_position.setXY(current_node_x + new_position[0], current_node_y + new_position[1])
-                    node_position.setYaw(new_position[2])
+                    node_position.setYaw(new_position[2] * math.pi / 180)
                 if isinstance(si.getStateSpace(), type(ob.RealVectorStateSpace())):
                     node_position[0], node_position[1] = current_node.position[0] + new_position[0],\
                                                          current_node.position[1] + new_position[1]
-                # print(node_position.getX(), node_position.getY(), node_position.getYaw())
-                # node_position[0], node_position[1] = current_node_x + new_position[0], current_node_y + new_position[1]
-
                 if not si.checkMotion(current_node.position, node_position):
                     continue
 
-                if not si.satisfiesBounds(node_position):
-                    continue
+                #if not si.satisfiesBounds(node_position):
+                #    continue
 
                 new_node = Node(current_node, node_position)
                 children.append(new_node)
@@ -116,13 +111,13 @@ class Astar(ob.Planner):
             for child in children:
                 if child in closed_list:
                     continue
-                child.g = current_node.g + 1  # si.distance(child.position, current_node.position)
+                child.g = current_node.g + 1 #si.distance(child.position, current_node.position)
                 child.h = goal.distanceGoal(child.position)
                 child.f = child.g + child.h
                 if len([i for i in open_list if child == i and child.g >= i.g]) > 0:
                     continue
                 heapq.heappush(open_list, child)
-                # open_list.append(child)
+
         solved = False
         approximate = False
         if not solution:
@@ -144,7 +139,6 @@ class Astar(ob.Planner):
 def isStateValid(state):
     x = state[0]
     y = state[1]
-    z = state[2]
     return (x - 250) * (x - 250) + (y - 250) * (y - 250) > 100 * 100
 
 
