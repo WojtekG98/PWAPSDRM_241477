@@ -181,14 +181,12 @@ def plan():
                 x.append(float(item))
             if len(x) is not 0:
                 verts.append(list(x))
-        # print(verts)
         plt.axis([0, N, 0, N])
         x = []
         y = []
         for i in range(0, len(verts)):
             x.append(verts[i][0])
             y.append(verts[i][1])
-        # plt.plot(verts[i][0], verts[i][1], 'r*-')
         plt.plot(x, y, 'ro-')
         plt.show()
 

@@ -65,6 +65,25 @@ def print_path_txt(path):
     print(yaw)
 
 
+def plot_path(path, style, LowB, HighB):
+    plt.axis([LowB, HighB, LowB, HighB])
+    verts = []
+    for line in path.split("\n"):
+        x = []
+        for item in line.split():
+            x.append(float(item))
+        if len(x) is not 0:
+            verts.append(list(x))
+    x = []
+    y = []
+    yaw = []
+    for i in range(0, len(verts)):
+        x.append(verts[i][0])
+        y.append(verts[i][1])
+        yaw.append(verts[i][2])
+    plt.plot(x, y, style)
+
+
 if __name__ == '__main__':
     space = ob.ReedsSheppStateSpace(2)
     bounds = ob.RealVectorBounds(2)
@@ -88,10 +107,10 @@ if __name__ == '__main__':
         goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
     path = plan(space, 'RRT', 30, start, goal)
     if path:
-        PlanujSciezke.plot_path(path, 'r-')
+        plot_path(path, 'r-', 0, N)
     path = plan(space, 'Astar', 30, start, goal)
     if path:
-        PlanujSciezke.plot_path(path, 'b-')
+        plot_path(path, 'b-', 0, N)
         print_path_txt(path)
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')

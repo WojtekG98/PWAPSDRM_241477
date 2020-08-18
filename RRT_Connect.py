@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import PlanujSciezke
 import math
+from enum import Enum
 
 try:
     from ompl import base as ob
@@ -15,6 +16,31 @@ except ImportError:
     from ompl import base as ob
     from ompl import geometric as og
 
+
+class Node:
+    """
+    RRT_Connect Node
+    """
+    def __init__(self, parent=None, position=None):
+        self.parent = parent
+        self.position = position
+        self.path = []
+
+    def __eq__(self, other):
+        return self.position.getX() == other.position.getX() and self.position.getY() == other.position.getY()
+
+    def __str__(self):
+        return str(self.position.getX()) + ", " + str(self.position.getY()) + ", " +\
+               str(self.position.getYaw()*180/math.pi)
+
+
+class GrowState(Enum):
+    Trapped = 0
+    Advanced = 1
+    Reached = 2
+
+
+# noinspection PyPep8Naming
 class RRT_Connect(ob.Planner):
     def __init__(self, si):
         super(RRT_Connect, self).__init__(si, "RRT_Connect")

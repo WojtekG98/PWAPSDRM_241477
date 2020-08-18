@@ -1,5 +1,5 @@
 import Astar
-import sys
+import WygladzSciezke
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
@@ -67,28 +67,6 @@ def plan(runTime, plannerType, fname, space, start, goal):
         print("No solution found.")
 
 
-def plot_path(path, style):
-    plt.axis([0, N, 0, N])
-    verts = []
-    for line in path.split("\n"):
-        x = []
-        for item in line.split():
-            x.append(float(item))
-        if len(x) is not 0:
-            verts.append(list(x))
-    x = []
-    y = []
-    yaw = []
-    for i in range(0, len(verts)):
-        x.append(verts[i][0])
-        y.append(verts[i][1])
-        yaw.append(verts[i][2])
-    print(x)
-    print(y)
-    print(yaw)
-    plt.plot(x, y, style)
-
-
 if __name__ == '__main__':
     # Construct the robot state space in which we're planning.
     # We're planning in [0,N]x[0,N], a subset of R^2.
@@ -111,10 +89,10 @@ if __name__ == '__main__':
         goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
 
     Path = plan(5, 'RRT', 'path.txt', space, start, goal)
-    plot_path(Path, 'ro-')
+    WygladzSciezke.plot_path(Path, 'ro-', 0, N)
     Path = plan(600, 'Astar', 'path2.txt', space, start, goal)
     if Path:
-        plot_path(Path, 'bo-')
+        WygladzSciezke.plot_path(Path, 'bo-', 0, N)
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
     plt.legend(('RRT', 'A*'))
