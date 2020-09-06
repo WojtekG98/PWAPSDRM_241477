@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
-import PlanujSciezke
+import WygladzSciezke
 import math
 from enum import Enum
 
@@ -44,40 +44,76 @@ class GrowState(Enum):
 class RRT_Connect(ob.Planner):
     def __init__(self, si):
         super(RRT_Connect, self).__init__(si, "RRT_Connect")
+        self.tree = []
         self.states_ = []
         self.sampler_ = si.allocStateSampler()
 
-    def solve(self, ptc):
+    def expand(self):
+        si = self.getSpaceInformation()
         pdef = self.getProblemDefinition()
         goal = pdef.getGoal()
+        # new random node
+        random_state = si.allocState()
+        self.sampler_.sampleUniform(random_state)
+        # find nearest node
+        nearest_node = self.near(random_state)
+        # find new node based on step size
+        new_node_xy = self.step(nearest_node, random_state)
+        new_node_position = si.allocState()
+        new_node_position.setXY(new_node_xy[0], new_node_xy[1])
+        # connect the random node with its nearest node
+        new_node = Node(nearest_node, new_node_position)
+        if si.checkMotion(new_node.position, self.tree[-1].position):
+            self.tree.append(new_node)
+            if goal.distanceGoal(self.tree[-1].position) < 5:
+                return GrowState(2)
+            else:
+                return GrowState(1)
+        else:
+            return GrowState(0)
+
+    def near(self, random_state):
+        si = self.getSpaceInformation()
+        # find the nearest node
+        dmin = si.distance(self.tree[0].position, random_state)
+        nearest_node_id = 0
+        for i in range(0, len(self.tree)):
+            if si.distance(self.tree[i].position, random_state) < dmin:
+                dmin = si.distance(self.tree[i].position, random_state)
+                nearest_node_id = i
+        return self.tree[nearest_node_id]
+
+    def step(self, nearest_node, random_state):
+        (xnear, ynear) = (nearest_node.position.getX(), nearest_node.position.getY())
+        (xrand, yrand) = (random_state.getX(), random_state.getY())
+        (px, py) = (xrand - xnear, yrand - ynear)
+        theta = math.atan2(py, px)
+        (x, y) = (xnear + math.cos(theta), ynear + math.sin(theta))
+        return x,y
+
+    def solve(self, ptc):
+        pdef = self.getProblemDefinition()
         si = self.getSpaceInformation()
         pi = self.getPlannerInputStates()
         st = pi.nextStart()
         while st:
             self.states_.append(st)
             st = pi.nextStart()
+        self.tree.append(Node(None, pdef.getStartState(0)))
         solution = None
         approxsol = 0
         approxdif = 1e6
-        last_dist = math.inf
         while not ptc():
-            rstate = si.allocState()
-            # pick a random state in the state space
-            self.sampler_.sampleUniform(rstate)
-            # check motion
-            if si.checkMotion(self.states_[-1], rstate):
-                dist = goal.distanceGoal(rstate)
-                if dist < last_dist:
-                    self.states_.append(rstate)
-                    sat = goal.isSatisfied(rstate)
-                    last_dist = dist
-                    if sat:
-                        approxdif = dist
-                        solution = len(self.states_)
-                        break
-                    if dist < approxdif:
-                        approxdif = dist
-                        approxsol = len(self.states_)
+            if self.expand() == GrowState(2):
+                current = self.tree[-1]
+                path = []
+                while current is not None:
+                    path.append(current.position)
+                    current = current.parent
+                for i in range(1, len(path)):
+                    self.states_.append(path[len(path) - i - 1])
+                solution = len(self.states_)
+                break
         solved = False
         approximate = False
         if not solution:
@@ -122,7 +158,7 @@ def plan():
     planner = RRT_Connect(ss.getSpaceInformation())
     ss.setPlanner(planner)
 
-    result = ss.solve(10.0)
+    result = ss.solve(100.0)
     if result:
         if result.getStatus() == ob.PlannerStatus.APPROXIMATE_SOLUTION:
             print("Solution is approximate")
@@ -135,7 +171,7 @@ def plan():
         path = path.printAsMatrix()
         plt.plot(start[0], start[1], 'g*')
         plt.plot(goal[0], goal[1], 'y*')
-        PlanujSciezke.plot_path(path, 'b-')
+        WygladzSciezke.plot_path(path, 'b-', 0, 100)
         plt.show()
 
 
