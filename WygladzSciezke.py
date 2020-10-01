@@ -13,7 +13,7 @@ import random
 N = 100.0
 radius = 10
 center = [N / 2, N / 2]
-radius2 = 10
+radius2 = 0
 center2 = [3 * N / 4, N / 2]
 
 def isStateValid(state):
@@ -61,11 +61,11 @@ def print_path_txt(path):
         x.append(verts[i][0])
         y.append(verts[i][1])
         yaw.append(verts[i][2])
-    print(x)
-    print(y)
+    # print(x)
+    # print(y)
     for i in range(0, len(yaw)):
         yaw[i] = yaw[i]*180/pi
-    print(yaw)
+    # print(yaw)
 
 
 def plot_path(path, style, LowB, HighB):
@@ -111,9 +111,13 @@ if __name__ == '__main__':
     path = plan(space, 'RRT', 30, start, goal)
     if path:
         plot_path(path, 'r-', 0, N)
-    path = plan(space, 'rrtconnect', 30, start, goal)
+    path = plan(space, 'Astar', 30, start, goal)
     if path:
         plot_path(path, 'b-', 0, N)
+        print_path_txt(path)
+    path = plan(space, 'rrtconnect', 100, start, goal)
+    if path:
+        plot_path(path, 'g-', 0, N)
         print_path_txt(path)
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
@@ -121,6 +125,6 @@ if __name__ == '__main__':
     circle2 = plt.Circle(center2, radius2, color='k')
     plt.gcf().gca().add_artist(circle1)
     plt.gcf().gca().add_artist(circle2)
-    plt.legend(('RRT', 'A*'))
+    plt.legend(('RRT', 'A*', 'RRT-Connect'))
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()

@@ -51,11 +51,8 @@ class RRT_Connect(ob.Planner):
         self.states_ = []
         self.sampler_ = si.allocStateSampler()
 
-    def expand(self, Tree, goal):
+    def expand(self, Tree, random_state):
         si = self.getSpaceInformation()
-        # new random node
-        random_state = si.allocState()
-        self.sampler_.sampleUniform(random_state)
         # find nearest node
         nearest_node = self.near(random_state, Tree)
         # find new node based on step size
@@ -63,16 +60,19 @@ class RRT_Connect(ob.Planner):
         new_node_position = si.allocState()
         new_node_position.setXY(new_node_xy[0], new_node_xy[1])
         new_node_position.setYaw(new_node_xy[2]*180/math.pi)
+        # new_node_position.setYaw(0)
         # connect the random node with its nearest node
         new_node = Node(nearest_node, new_node_position)
+        # check the motion
         if si.checkMotion(new_node.position, Tree[-1].position):
+            # add new node to the tree
             Tree.append(new_node)
-            if si.distance(Tree[-1].position, goal) < 5:
-                return GrowState(2)
+            if si.distance(Tree[-1].position, random_state) < 1:
+                return GrowState.Reached
             else:
-                return GrowState(1)
+                return GrowState.Advanced
         else:
-            return GrowState(0)
+            return GrowState.Trapped
 
     def near(self, random_state, Tree):
         si = self.getSpaceInformation()
@@ -94,10 +94,7 @@ class RRT_Connect(ob.Planner):
         return x, y, theta
 
     def connect(self, Tree, q):
-        while True:
-            S = self.expand(Tree, q)
-            if S == GrowState(1):
-                break
+        S = self.expand(Tree, q)
         return S
 
     def solve(self, ptc):
@@ -116,17 +113,55 @@ class RRT_Connect(ob.Planner):
         solution = None
         approxsol = 0
         approxdif = 1e6
+        random_state = si.allocState()
         while not ptc():
-            if self.expand(self.treeA, goal_state) == GrowState(2):
-                current = self.treeA[-1]
-                path = []
-                while current is not None:
-                    path.append(current.position)
-                    current = current.parent
-                for i in range(1, len(path)):
-                    self.states_.append(path[len(path) - i - 1])
-                solution = len(self.states_)
-                break
+            # new random node
+            self.sampler_.sampleUniform(random_state)
+            if self.expand(self.treeA, random_state) != GrowState.Trapped:
+                if self.connect(self.treeB, self.treeA[-1].position) == GrowState.Reached:
+                    if self.treeA[0].position == start_state:
+                        start_tree = self.treeA
+                        end_tree = self.treeB
+                        print('A to start')
+                    else:
+                        start_tree = self.treeB
+                        end_tree = self.treeA
+                        print('B to start')
+                    path_from_mid_to_start = []
+                    path_from_mid_to_end = []
+                    current = start_tree[-1]
+                    while current.position != start_state:
+                        path_from_mid_to_start.append(current.position)
+                        current = current.parent
+                    current = end_tree[-1]
+                    while current is not None:
+                        path_from_mid_to_end.append(current.position)
+                        current = current.parent
+                    path = path_from_mid_to_start[::-1] + path_from_mid_to_end
+                    for i in range(0, len(path)):
+                        self.states_.append(path[i])
+                    solution = len(self.states_)
+                    #if self.treeB[0].position == start_state:
+                    #    print('B to start')
+                    #    path_from_mid_to_start = []
+                    #    path_from_mid_to_end = []
+                    #    current = self.treeB[-1]
+                    #    while current.position != start_state:
+                    #        path_from_mid_to_start.append(current.position)
+                    #        current = current.parent
+                    #    current = self.treeA[-1]
+                    #    while current is not None:
+                    #        path_from_mid_to_end.append(current.position)
+                    #        current = current.parent
+                    #    path = path_from_mid_to_start[::-1] + path_from_mid_to_end
+                    #    for i in range(0, len(path)):
+                    #        self.states_.append(path[i])
+                    #    solution = len(self.states_)
+                    break
+            self.treeA, self.treeB = self.treeB, self.treeA
+            # print('treeA:', self.treeA)
+            # print('treeB:', self.treeB)
+
         solved = False
         approximate = False
         if not solution:
@@ -151,7 +186,7 @@ def isStateValid(state):
 
 def plan():
     # create an ReedsShepp State space
-    space = ob.ReedsSheppStateSpace(2)
+    space = ob.ReedsSheppStateSpace(5)
     # set lower and upper bounds
     bounds = ob.RealVectorBounds(2)
     bounds.setLow(0)
@@ -162,10 +197,10 @@ def plan():
     ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
     start = ob.State(space)
     start[0] = 10.
-    start[1] = 10.
+    start[1] = 90.
     goal = ob.State(space)
     goal[0] = 90.
-    goal[1] = 90.
+    goal[1] = 10.
     ss.setStartAndGoalStates(start, goal, .05)
     # set the planner
     planner = RRT_Connect(ss.getSpaceInformation())
@@ -180,7 +215,7 @@ def plan():
         # print the simplified path
         path = ss.getSolutionPath()
         path.interpolate(100)
-        print(path.printAsMatrix())
+        #print(path.printAsMatrix())
         path = path.printAsMatrix()
         plt.plot(start[0], start[1], 'g*')
         plt.plot(goal[0], goal[1], 'y*')
