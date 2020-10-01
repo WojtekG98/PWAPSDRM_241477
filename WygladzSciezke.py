@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from math import sqrt
 from math import pi
 import Astar
+import RRT_Connect
 import random
 
 
@@ -29,6 +30,8 @@ def plan(space, planner, runTime, start, goal):
         ss.setPlanner(og.RRT(ss.getSpaceInformation()))
     elif planner == 'Astar':
         ss.setPlanner(Astar.Astar(ss.getSpaceInformation()))
+    elif planner.lower() == "rrtconnect":
+        ss.setPlanner(RRT_Connect.RRT_Connect(ss.getSpaceInformation()))
     else:
         print('Bad planner')
     solved = ss.solve(runTime)
@@ -108,7 +111,7 @@ if __name__ == '__main__':
     path = plan(space, 'RRT', 30, start, goal)
     if path:
         plot_path(path, 'r-', 0, N)
-    path = plan(space, 'Astar', 30, start, goal)
+    path = plan(space, 'rrtconnect', 30, start, goal)
     if path:
         plot_path(path, 'b-', 0, N)
         print_path_txt(path)

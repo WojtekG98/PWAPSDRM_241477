@@ -21,6 +21,7 @@ class Node:
     """
     RRT_Connect Node
     """
+
     def __init__(self, parent=None, position=None):
         self.parent = parent
         self.position = position
@@ -30,8 +31,8 @@ class Node:
         return self.position.getX() == other.position.getX() and self.position.getY() == other.position.getY()
 
     def __str__(self):
-        return str(self.position.getX()) + ", " + str(self.position.getY()) + ", " +\
-               str(self.position.getYaw()*180/math.pi)
+        return str(self.position.getX()) + ", " + str(self.position.getY()) + ", " + \
+               str(self.position.getYaw() * 180 / math.pi)
 
 
 class GrowState(Enum):
@@ -42,46 +43,47 @@ class GrowState(Enum):
 
 # noinspection PyPep8Naming
 class RRT_Connect(ob.Planner):
+
     def __init__(self, si):
         super(RRT_Connect, self).__init__(si, "RRT_Connect")
-        self.tree = []
+        self.treeA = []  # tree starting from start node
+        self.treeB = []  # tree starting from end node
         self.states_ = []
         self.sampler_ = si.allocStateSampler()
 
-    def expand(self):
+    def expand(self, Tree, goal):
         si = self.getSpaceInformation()
-        pdef = self.getProblemDefinition()
-        goal = pdef.getGoal()
         # new random node
         random_state = si.allocState()
         self.sampler_.sampleUniform(random_state)
         # find nearest node
-        nearest_node = self.near(random_state)
+        nearest_node = self.near(random_state, Tree)
         # find new node based on step size
         new_node_xy = self.step(nearest_node, random_state)
         new_node_position = si.allocState()
         new_node_position.setXY(new_node_xy[0], new_node_xy[1])
+        new_node_position.setYaw(new_node_xy[2]*180/math.pi)
         # connect the random node with its nearest node
         new_node = Node(nearest_node, new_node_position)
-        if si.checkMotion(new_node.position, self.tree[-1].position):
-            self.tree.append(new_node)
-            if goal.distanceGoal(self.tree[-1].position) < 5:
+        if si.checkMotion(new_node.position, Tree[-1].position):
+            Tree.append(new_node)
+            if si.distance(Tree[-1].position, goal) < 5:
                 return GrowState(2)
             else:
                 return GrowState(1)
         else:
             return GrowState(0)
 
-    def near(self, random_state):
+    def near(self, random_state, Tree):
         si = self.getSpaceInformation()
         # find the nearest node
-        dmin = si.distance(self.tree[0].position, random_state)
+        dmin = si.distance(Tree[0].position, random_state)
         nearest_node_id = 0
-        for i in range(0, len(self.tree)):
-            if si.distance(self.tree[i].position, random_state) < dmin:
-                dmin = si.distance(self.tree[i].position, random_state)
+        for i in range(0, len(Tree)):
+            if si.distance(Tree[i].position, random_state) < dmin:
+                dmin = si.distance(Tree[i].position, random_state)
                 nearest_node_id = i
-        return self.tree[nearest_node_id]
+        return Tree[nearest_node_id]
 
     def step(self, nearest_node, random_state):
         (xnear, ynear) = (nearest_node.position.getX(), nearest_node.position.getY())
@@ -89,23 +91,34 @@ class RRT_Connect(ob.Planner):
         (px, py) = (xrand - xnear, yrand - ynear)
         theta = math.atan2(py, px)
         (x, y) = (xnear + math.cos(theta), ynear + math.sin(theta))
-        return x,y
+        return x, y, theta
+
+    def connect(self, Tree, q):
+        while True:
+            S = self.expand(Tree, q)
+            if S == GrowState(1):
+                break
+        return S
 
     def solve(self, ptc):
         pdef = self.getProblemDefinition()
         si = self.getSpaceInformation()
         pi = self.getPlannerInputStates()
+        goal = pdef.getGoal()
         st = pi.nextStart()
         while st:
             self.states_.append(st)
             st = pi.nextStart()
-        self.tree.append(Node(None, pdef.getStartState(0)))
+        start_state = pdef.getStartState(0)
+        goal_state = goal.getState()
+        self.treeA.append(Node(None, start_state))
+        self.treeB.append(Node(None, goal_state))
         solution = None
         approxsol = 0
         approxdif = 1e6
         while not ptc():
-            if self.expand() == GrowState(2):
-                current = self.tree[-1]
+            if self.expand(self.treeA, goal_state) == GrowState(2):
+                current = self.treeA[-1]
                 path = []
                 while current is not None:
                     path.append(current.position)
