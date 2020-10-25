@@ -1,172 +1,184 @@
-from ompl import util as ou
-from ompl import base as ob
-from ompl import geometric as og
-from math import sqrt
+#!/usr/bin/env python
+
 import matplotlib.pyplot as plt
-import random
+import WygladzSciezke
+import math
+from enum import Enum
 
-radius = 100
-center = [250, 250]
+try:
+    from ompl import base as ob
+    from ompl import geometric as og
+except ImportError:
+    from os.path import abspath, dirname, join
+    import sys
 
-
-class ValidityChecker(ob.StateValidityChecker):
-    # Returns whether the given state's position overlaps the
-    # circular obstacle
-    def isValid(self, state):
-        x = state[0]
-        y = state[1]
-        # if (self.clearance(state) < 0.0):
-        # print("x:",x,", y:",y,",clearance: ",self.clearance(state))
-        return self.clearance(state) > 0.0
-
-    # Returns the distance from the given state's position to the
-    # boundary of the circular obstacle.
-    def clearance(self, state):
-        # Extract the robot's (x,y) position from its state
-        x = state[0]
-        y = state[1]
-        # Distance formula between two points, offset by the circle's
-        # radius
-        return sqrt((x - center[0]) * (x - center[0]) + (y - center[0]) * (y - center[0])) - radius
+    sys.path.insert(0, join(dirname(dirname(abspath(__file__))), "py-bindings"))
+    from ompl import base as ob
+    from ompl import geometric as og
 
 
-def getPathLengthObjective(si):
-    return ob.PathLengthOptimizationObjective(si)
+class Node:
+    """
+    RRT_Connect Node
+    """
+
+    def __init__(self, parent=None, position=None):
+        self.parent = parent
+        self.position = position
+        self.path = []
+
+    def __eq__(self, other):
+        return self.position.getX() == other.position.getX() and self.position.getY() == other.position.getY()
+
+    def __str__(self):
+        return str(self.position.getX()) + ", " + str(self.position.getY()) + ", " + \
+               str(self.position.getYaw() * 180 / math.pi)
 
 
-def getThresholdPathLengthObj(si):
-    obj = ob.PathLengthOptimizationObjective(si)
-    obj.setCostThreshold(ob.Cost(1.51))
-    return obj
+class GrowState(Enum):
+    Trapped = 0
+    Advanced = 1
+    Reached = 2
 
 
-# Keep these in alphabetical order and all lower case
-def allocatePlanner(si, plannerType):
-    if plannerType.lower() == "bfmtstar":
-        return og.BFMT(si)
-    elif plannerType.lower() == "bitstar":
-        return og.BITstar(si)
-    elif plannerType.lower() == "fmtstar":
-        return og.FMT(si)
-    elif plannerType.lower() == "informedrrtstar":
-        return og.InformedRRTstar(si)
-    elif plannerType.lower() == "prmstar":
-        return og.PRMstar(si)
-    elif plannerType.lower() == "rrt":
-        return og.RRT(si)
-    elif plannerType.lower() == "rrtstar":
-        return og.RRTstar(si)
-    elif plannerType.lower() == "sorrtstar":
-        return og.SORRTstar(si)
-    else:
-        ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
+# noinspection PyPep8Naming
+class RRT(ob.Planner):
+
+    def __init__(self, si):
+        super(RRT, self).__init__(si, "RRT_Connect")
+        self.tree = []  # tree starting from start node
+        self.dmax = 1
+        self.states_ = []
+        self.sampler_ = si.allocStateSampler()
+
+    def expand(self, Tree, goal):
+        si = self.getSpaceInformation()
+        # new random node
+        random_state = si.allocState()
+        self.sampler_.sampleUniform(random_state)
+        # find nearest node
+        nearest_node = self.near(random_state, Tree)
+        # find new node based on step size
+        new_node_xy = self.step(nearest_node, random_state)
+        new_node_position = si.allocState()
+        new_node_position.setXY(new_node_xy[0], new_node_xy[1])
+        new_node_position.setYaw(new_node_xy[2]*180/math.pi)
+        # connect the random node with its nearest node
+        new_node = Node(nearest_node, new_node_position)
+        if new_node_xy[2]*180/math.pi > 180:
+            print(new_node_xy[2]*180/math.pi)
+        if si.checkMotion(Tree[-1].position, new_node.position):
+            Tree.append(new_node)
+            if si.distance(Tree[-1].position, goal) < 5*self.dmax:
+                return GrowState.Reached
+            else:
+                return GrowState.Advanced
+        else:
+            return GrowState.Trapped
+
+    def near(self, random_state, Tree):
+        si = self.getSpaceInformation()
+        # find the nearest node
+        dlist = [si.distance(node.position, random_state) for node in Tree]
+        return Tree[dlist.index(min(dlist))]
+
+    def step(self, nearest_node, random_state):
+        # si = self.getSpaceInformation()
+        # d = si.distance(nearest_node.position, random_state)
+        (xnear, ynear) = (nearest_node.position.getX(), nearest_node.position.getY())
+        (xrand, yrand) = (random_state.getX(), random_state.getY())
+        (px, py) = (xrand - xnear, yrand - ynear)
+        theta = math.atan2(py, px)
+        (x, y) = (xnear + self.dmax*math.cos(theta), ynear + self.dmax*math.sin(theta))
+        return x, y, theta
+
+    def solve(self, ptc):
+        pdef = self.getProblemDefinition()
+        si = self.getSpaceInformation()
+        pi = self.getPlannerInputStates()
+        goal = pdef.getGoal()
+        st = pi.nextStart()
+        while st:
+            self.states_.append(st)
+            st = pi.nextStart()
+        start_state = pdef.getStartState(0)
+        goal_state = goal.getState()
+        self.tree.append(Node(None, start_state))
+        solution = None
+        approxsol = 0
+        approxdif = 1e6
+        while not ptc():
+            if self.expand(self.tree, goal_state) == GrowState.Reached:
+                current = self.tree[-1]
+                path = []
+                while current is not None:
+                    path.append(current.position)
+                    current = current.parent
+                for i in range(1, len(path)):
+                    self.states_.append(path[len(path) - i - 1])
+                solution = len(self.states_)
+                break
+        solved = False
+        approximate = False
+        if not solution:
+            solution = approxsol
+            approximate = True
+        if solution:
+            path = og.PathGeometric(si)
+            for s in self.states_[:solution]:
+                path.append(s)
+            pdef.addSolutionPath(path)
+            solved = True
+        return ob.PlannerStatus(solved, approximate)
+
+    def clear(self):
+        super(RRT, self).clear()
+        self.states_ = []
 
 
-# Keep these in alphabetical order and all lower case
-def allocateObjective(si, objectiveType):
-    if objectiveType.lower() == "pathclearance":
-        return getClearanceObjective(si)
-    elif objectiveType.lower() == "pathlength":
-        return getPathLengthObjective(si)
-    elif objectiveType.lower() == "thresholdpathlength":
-        return getThresholdPathLengthObj(si)
-    elif objectiveType.lower() == "weightedlengthandclearancecombo":
-        return getBalancedObjective1(si)
-    else:
-        ou.OMPL_ERROR("Optimization-objective is not implemented in allocation function.")
+def isStateValid(state):
+    return True
 
 
-def plan(runTime, plannerType, objectiveType, fname):
-    # Construct the robot state space in which we're planning. We're
-    # planning in [0,500]x[0,500], a subset of R^2.
-    space = ob.RealVectorStateSpace(2)
-
-    # Set the bounds of space to be in [0,500].
-    space.setBounds(0.0, 500.0)
-
-    # Construct a space information instance for this state space
-    si = ob.SpaceInformation(space)
-
-    # Set the object used to check which states in the space are valid
-    validityChecker = ValidityChecker(si)
-    si.setStateValidityChecker(validityChecker)
-
-    si.setup()
-
-    # Set our robot's starting state to be random
+def plan():
+    # create an ReedsShepp State space
+    space = ob.ReedsSheppStateSpace(2)
+    # set lower and upper bounds
+    bounds = ob.RealVectorBounds(2)
+    bounds.setLow(0)
+    bounds.setHigh(100)
+    space.setBounds(bounds)
+    # create a simple setup object
+    ss = og.SimpleSetup(space)
+    ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
     start = ob.State(space)
-    start[0] = random.randint(0, 500)
-    start[1] = random.randint(0, 500)
-
-    while (sqrt((start[0] - center[0]) * (start[0] - center[0]) + (start[1] - center[0]) * (
-            start[1] - center[0])) - radius < 0):
-        start[0] = random.randint(0, 500)
-        start[1] = random.randint(0, 500)
-
-    # Set our robot's goal state to be random 
+    start[0] = 10.
+    start[1] = 10.
     goal = ob.State(space)
-    goal[0] = random.randint(0, 500)
-    goal[1] = random.randint(0, 500)
-    while (sqrt((goal[0] - center[0]) * (goal[0] - center[0]) + (goal[1] - center[0]) * (
-            goal[1] - center[0])) - radius < 0):
-        goal[0] = random.randint(0, 500)
-        goal[1] = random.randint(0, 500)
+    goal[0] = 90.
+    goal[1] = 90.
+    ss.setStartAndGoalStates(start, goal, .05)
+    # set the planner
+    planner = RRT(ss.getSpaceInformation())
+    ss.setPlanner(planner)
 
-    # Create a problem instance
-    pdef = ob.ProblemDefinition(si)
-
-    # Set the start and goal states
-    pdef.setStartAndGoalStates(start, goal)
-
-    # Create the optimization objective specified by our command-line argument.
-    # This helper function is simply a switch statement.
-    pdef.setOptimizationObjective(allocateObjective(si, objectiveType))
-
-    # Construct the optimal planner specified by our command line argument.
-    # This helper function is simply a switch statement.
-    optimizingPlanner = allocatePlanner(si, plannerType)
-
-    # Set the problem instance for our planner to solve
-    optimizingPlanner.setProblemDefinition(pdef)
-    optimizingPlanner.setup()
-
-    # attempt to solve the planning problem in the given runtime
-    solved = optimizingPlanner.solve(runTime)
-
-    if solved:
-        # Output the length of the path found
-        print('{0} found solution of path length {1:.4f} with an optimization ' \
-              'objective value of {2:.4f}'.format( \
-            optimizingPlanner.getName(), \
-            pdef.getSolutionPath().length(), \
-            pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
-        matrix = pdef.getSolutionPath().printAsMatrix()
-        print(matrix)
-        verts = []
-        for line in matrix.split("\n"):
-            x = []
-            for item in line.split():
-                x.append(float(item))
-            if len(x) is not 0:
-                verts.append(list(x))
-        # print(verts)
-        plt.axis([0, 500, 0, 500])
-        x = []
-        y = []
-        for i in range(0, len(verts)):
-            x.append(verts[i][0])
-            y.append(verts[i][1])
-        # plt.plot(verts[i][0], verts[i][1], 'r*-')
-        plt.plot(x, y, 'ro-')
+    result = ss.solve(600.0)
+    if result:
+        if result.getStatus() == ob.PlannerStatus.APPROXIMATE_SOLUTION:
+            print("Solution is approximate")
+        # try to shorten the path
+        # ss.simplifySolution()
+        # print the simplified path
+        path = ss.getSolutionPath()
+        path.interpolate(100)
+        #print(path.printAsMatrix())
+        path = path.printAsMatrix()
+        plt.plot(start[0], start[1], 'g*')
+        plt.plot(goal[0], goal[1], 'y*')
+        WygladzSciezke.plot_path(path, 'b-', 0, 100)
         plt.show()
-        # If a filename was specified, output the path as a matrix to
-        # that file for visualization
-        if fname:
-            with open(fname, 'w') as outFile:
-                outFile.write(pdef.getSolutionPath().printAsMatrix())
-    else:
-        print("No solution found.")
 
 
 if __name__ == "__main__":
-    plan(10, 'RRT', 'PathLength', 'path.txt')
+    print('22')
+    plan()

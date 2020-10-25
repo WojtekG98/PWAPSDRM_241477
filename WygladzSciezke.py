@@ -1,17 +1,17 @@
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
-import PlanujSciezke
 import matplotlib.pyplot as plt
 from math import sqrt
 from math import pi
 import Astar
 import RRT_Connect
+import RRT
 import random
 
 
 N = 100.0
-radius = 10
+radius = 30
 center = [N / 2, N / 2]
 radius2 = 0
 center2 = [3 * N / 4, N / 2]
@@ -27,7 +27,7 @@ def plan(space, planner, runTime, start, goal):
     ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
     ss.setStartAndGoalStates(start, goal)
     if planner == 'RRT':
-        ss.setPlanner(og.RRT(ss.getSpaceInformation()))
+        ss.setPlanner(RRT.RRT(ss.getSpaceInformation()))
     elif planner == 'Astar':
         ss.setPlanner(Astar.Astar(ss.getSpaceInformation()))
     elif planner.lower() == "rrtconnect":
@@ -37,7 +37,7 @@ def plan(space, planner, runTime, start, goal):
     solved = ss.solve(runTime)
     if solved:
         path = ss.getSolutionPath()
-        path.interpolate(1000)
+        path.interpolate(100)
         return path.printAsMatrix()
         # return ss.getSolutionPath().printAsMatrix()
     else:
@@ -115,16 +115,16 @@ if __name__ == '__main__':
     if path:
         plot_path(path, 'b-', 0, N)
         print_path_txt(path)
-    path = plan(space, 'rrtconnect', 100, start, goal)
-    if path:
-        plot_path(path, 'g-', 0, N)
-        print_path_txt(path)
+    #path = plan(space, 'rrtconnect', 100, start, goal)
+    #if path:
+    #    plot_path(path, 'g-', 0, N)
+    #    print_path_txt(path)
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
     circle1 = plt.Circle(center, radius, color='k')
     circle2 = plt.Circle(center2, radius2, color='k')
     plt.gcf().gca().add_artist(circle1)
     plt.gcf().gca().add_artist(circle2)
-    plt.legend(('RRT', 'A*', 'RRT-Connect'))
+    plt.legend(('RRT', 'A*'))#, 'RRT-Connect'))
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
