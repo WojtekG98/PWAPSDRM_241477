@@ -91,14 +91,11 @@ class Astar(ob.Planner):
             children = []
             for new_position in adjacent_squares:
                 node_position = si.allocState()
-                if isinstance(si.getStateSpace(), type(ob.ReedsSheppStateSpace(6))):
-                    current_node_x = current_node.position.getX()
-                    current_node_y = current_node.position.getY()
-                    node_position.setXY(current_node_x + new_position[0], current_node_y + new_position[1])
-                    node_position.setYaw(new_position[2] * math.pi / 180)
-                if isinstance(si.getStateSpace(), type(ob.RealVectorStateSpace())):
-                    node_position[0], node_position[1] = current_node.position[0] + new_position[0],\
-                                                         current_node.position[1] + new_position[1]
+                current_node_x = current_node.position.getX()
+                current_node_y = current_node.position.getY()
+                node_position.setXY(current_node_x + new_position[0], current_node_y + new_position[1])
+                node_position.setYaw(new_position[2] * math.pi / 180)
+
                 if not si.checkMotion(current_node.position, node_position):
                     continue
 
@@ -108,7 +105,7 @@ class Astar(ob.Planner):
             for child in children:
                 if child in closed_list:
                     continue
-                child.g = current_node.g + 1 #si.distance(child.position, current_node.position)
+                child.g = current_node.g + 1#math.sqrt((child.position.getX()-current_node.position.getX())**2+(child.position.getY()-current_node.position.getY())**2)#1 #si.distance(child.position, current_node.position)
                 child.h = goal.distanceGoal(child.position)
                 child.f = child.g + child.h
                 if len([i for i in open_list if child == i and child.g >= i.g]) > 0:
@@ -134,9 +131,9 @@ class Astar(ob.Planner):
 
 
 def isStateValid(state):
-    x = state[0]
-    y = state[1]
-    return (x - 250) * (x - 250) + (y - 250) * (y - 250) > 100 * 100
+    x = state.getX()
+    y = state.getY()
+    return True#(x - 0) * (x - 0) + (y - 0) * (y - 0) > 0 * 0
 
 
 def dist_between_states(state1, state2):
@@ -144,9 +141,9 @@ def dist_between_states(state1, state2):
 
 
 def plan():
-    N = 10
-    # create an R^2 state space
-    space = ob.RealVectorStateSpace(2)
+    N = 100
+    # create a state space
+    space = ob.ReedsSheppStateSpace(2)
     # set lower and upper bounds
     bounds = ob.RealVectorBounds(2)
     bounds.setLow(0)
@@ -156,16 +153,16 @@ def plan():
     ss = og.SimpleSetup(space)
     ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
     start = ob.State(space)
-    start[0] = 0  # random.randint(0, int(N / 2))
-    start[1] = 0  # random.randint(0, int(N / 2))
+    start[0] = 1  # random.randint(0, int(N / 2))
+    start[1] = 1  # random.randint(0, int(N / 2))
     goal = ob.State(space)
-    goal[0] = N  # random.randint(int(N / 2), N)
-    goal[1] = N  # random.randint(int(N / 2), N)
+    goal[0] = N-1  # random.randint(int(N / 2), N)
+    goal[1] = N-1  # random.randint(int(N / 2), N)
     ss.setStartAndGoalStates(start, goal)
     planner = Astar(ss.getSpaceInformation())
     ss.setPlanner(planner)
 
-    result = ss.solve(.01)
+    result = ss.solve(10)
     if result:
         if result.getStatus() == ob.PlannerStatus.APPROXIMATE_SOLUTION:
             print("Solution is approximate")

@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import WygladzSciezke
 import math
+import random
 from enum import Enum
 
 try:
@@ -35,6 +36,10 @@ class Node:
                str(self.position.getYaw() * 180 / math.pi)
 
 
+def distance(pos1, pos2):
+    return math.sqrt((pos1.getX() - pos2.getX()) ** 2 + (pos1.getY() - pos2.getY()) ** 2)
+
+
 class GrowState(Enum):
     Trapped = 0
     Advanced = 1
@@ -47,7 +52,7 @@ class RRT(ob.Planner):
     def __init__(self, si):
         super(RRT, self).__init__(si, "RRT_Connect")
         self.tree = []  # tree starting from start node
-        self.dmax = 1
+        self.dmax = 5
         self.states_ = []
         self.sampler_ = si.allocStateSampler()
 
@@ -60,16 +65,18 @@ class RRT(ob.Planner):
         nearest_node = self.near(random_state, Tree)
         # find new node based on step size
         new_node_xy = self.step(nearest_node, random_state)
+        if new_node_xy is None:
+            return GrowState.Trapped
         new_node_position = si.allocState()
         new_node_position.setXY(new_node_xy[0], new_node_xy[1])
-        new_node_position.setYaw(new_node_xy[2]*180/math.pi)
+        new_node_position.setYaw(new_node_xy[2] * 180 / math.pi)
         # connect the random node with its nearest node
         new_node = Node(nearest_node, new_node_position)
-        if new_node_xy[2]*180/math.pi > 180:
-            print(new_node_xy[2]*180/math.pi)
         if si.checkMotion(Tree[-1].position, new_node.position):
+
             Tree.append(new_node)
-            if si.distance(Tree[-1].position, goal) < 5*self.dmax:
+            if distance(goal, Tree[-1].position) < self.dmax and si.checkMotion(Tree[-1].position, goal):
+                Tree.append(Node(Tree[-1], goal))
                 return GrowState.Reached
             else:
                 return GrowState.Advanced
@@ -77,20 +84,25 @@ class RRT(ob.Planner):
             return GrowState.Trapped
 
     def near(self, random_state, Tree):
-        si = self.getSpaceInformation()
+        # si = self.getSpaceInformation()
         # find the nearest node
-        dlist = [si.distance(node.position, random_state) for node in Tree]
+        dlist = [distance(node.position, random_state) for node in Tree]
+        #dlist = [si.distance(node.position, random_state) for node in Tree
+        #dlist = [math.sqrt((node.position.getX() - random_state.getX()) ** 2 + (
+        #         node.position.getY() - random_state.getY()) ** 2)
+        #         for node in Tree]
         return Tree[dlist.index(min(dlist))]
 
     def step(self, nearest_node, random_state):
-        # si = self.getSpaceInformation()
-        # d = si.distance(nearest_node.position, random_state)
-        (xnear, ynear) = (nearest_node.position.getX(), nearest_node.position.getY())
-        (xrand, yrand) = (random_state.getX(), random_state.getY())
-        (px, py) = (xrand - xnear, yrand - ynear)
-        theta = math.atan2(py, px)
-        (x, y) = (xnear + self.dmax*math.cos(theta), ynear + self.dmax*math.sin(theta))
-        return x, y, theta
+        d = distance(nearest_node.position, random_state)
+        # si.distance(nearest_node.position, random_state)
+        if d > self.dmax:
+            (xnear, ynear) = (nearest_node.position.getX(), nearest_node.position.getY())
+            (xrand, yrand) = (random_state.getX(), random_state.getY())
+            (px, py) = (xrand - xnear, yrand - ynear)
+            theta = math.atan2(py, px)
+            (x, y) = (xnear + self.dmax * math.cos(theta), ynear + self.dmax * math.sin(theta))
+            return x, y, theta
 
     def solve(self, ptc):
         pdef = self.getProblemDefinition()
@@ -141,23 +153,22 @@ def isStateValid(state):
 
 
 def plan():
+    N = 50
     # create an ReedsShepp State space
     space = ob.ReedsSheppStateSpace(2)
     # set lower and upper bounds
     bounds = ob.RealVectorBounds(2)
     bounds.setLow(0)
-    bounds.setHigh(100)
+    bounds.setHigh(N)
     space.setBounds(bounds)
     # create a simple setup object
     ss = og.SimpleSetup(space)
     ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
     start = ob.State(space)
-    start[0] = 10.
-    start[1] = 10.
+    start[0], start[1] = random.randint(0, N), random.randint(0, N)
     goal = ob.State(space)
-    goal[0] = 90.
-    goal[1] = 90.
-    ss.setStartAndGoalStates(start, goal, .05)
+    goal[0], goal[1] = random.randint(0, N), random.randint(0, N)
+    ss.setStartAndGoalStates(start, goal)
     # set the planner
     planner = RRT(ss.getSpaceInformation())
     ss.setPlanner(planner)
@@ -171,14 +182,13 @@ def plan():
         # print the simplified path
         path = ss.getSolutionPath()
         path.interpolate(100)
-        #print(path.printAsMatrix())
+        # print(path.printAsMatrix())
         path = path.printAsMatrix()
         plt.plot(start[0], start[1], 'g*')
         plt.plot(goal[0], goal[1], 'y*')
-        WygladzSciezke.plot_path(path, 'b-', 0, 100)
+        WygladzSciezke.plot_path(path, 'b-', -1, N+1)
         plt.show()
 
 
 if __name__ == "__main__":
-    print('22')
     plan()

@@ -11,7 +11,7 @@ import random
 
 
 N = 100.0
-radius = 30
+radius = 10
 center = [N / 2, N / 2]
 radius2 = 0
 center2 = [3 * N / 4, N / 2]
@@ -19,7 +19,12 @@ center2 = [3 * N / 4, N / 2]
 def isStateValid(state):
     x = state.getX()
     y = state.getY()
-    return sqrt((x - center[0]) ** 2 + (y - center[1]) ** 2) > radius and sqrt((x - center2[0]) ** 2 + (y - center2[1]) ** 2) > radius2
+    #if 60 > x > 40 and 51 > y > 49:
+    #    return False
+    #else:
+    #    return True
+    return (x - center[0]) ** 2 + (y - center[1]) ** 2 >= radius**2 \
+           and sqrt((x - center2[0]) ** 2 + (y - center2[1]) ** 2) >= radius2
 
 
 def plan(space, planner, runTime, start, goal):
@@ -37,7 +42,7 @@ def plan(space, planner, runTime, start, goal):
     solved = ss.solve(runTime)
     if solved:
         path = ss.getSolutionPath()
-        path.interpolate(100)
+        path.interpolate(1000)
         return path.printAsMatrix()
         # return ss.getSolutionPath().printAsMatrix()
     else:
@@ -95,7 +100,7 @@ if __name__ == '__main__':
     space.setBounds(bounds)
     # Set our robot's starting state to be random
     start = ob.State(space)
-    start[0], start[1] = random.randint(0, N / 2), random.randint(0, N / 2)
+    start[0], start[1] = random.randint(0, N), random.randint(0, N)
     while not sqrt((start[0] - center[0]) ** 2 + (start[1] - center[1]) ** 2) > radius \
             or not \
             sqrt((start[0] - center2[0]) ** 2 + (start[1] - center2[1]) ** 2) > radius2:
@@ -103,22 +108,19 @@ if __name__ == '__main__':
 
     # Set our robot's goal state to be random
     goal = ob.State(space)
-    goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
+    goal[0], goal[1] = random.randint(0, N), random.randint(0, N)
     while not sqrt((goal[0] - center[0]) ** 2 + (goal[1] - center[1]) ** 2) > radius \
             or not \
             sqrt((goal[0] - center2[0]) ** 2 + (goal[1] - center2[1]) ** 2) > radius2:
         goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
-    path = plan(space, 'RRT', 30, start, goal)
-    if path:
-        plot_path(path, 'r-', 0, N)
-    path = plan(space, 'Astar', 30, start, goal)
-    if path:
-        plot_path(path, 'b-', 0, N)
-        print_path_txt(path)
-    #path = plan(space, 'rrtconnect', 100, start, goal)
-    #if path:
-    #    plot_path(path, 'g-', 0, N)
-    #    print_path_txt(path)
+    rrt_path = plan(space, 'RRT', 1000, start, goal)
+    if rrt_path:
+        plot_path(rrt_path, 'r-', 0, N)
+    a_path = plan(space, 'Astar', 1000, start, goal)
+    if a_path:
+        plot_path(a_path, 'b-', 0, N)
+        print_path_txt(a_path)
+
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
     circle1 = plt.Circle(center, radius, color='k')
