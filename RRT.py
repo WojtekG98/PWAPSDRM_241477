@@ -72,7 +72,7 @@ class RRT(ob.Planner):
         new_node_position.setYaw(new_node_xy[2])
         # connect the random node with its nearest node
         new_node = Node(nearest_node, new_node_position)
-        if si.checkMotion(Tree[-1].position, new_node.position):
+        if si.checkMotion(nearest_node.position, new_node.position):
             Tree.append(new_node)
             if distance(goal, Tree[-1].position) < self.dmax and si.checkMotion(Tree[-1].position, goal):
                 Tree.append(Node(Tree[-1], goal))

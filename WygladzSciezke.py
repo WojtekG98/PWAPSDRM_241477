@@ -7,8 +7,9 @@ from math import pi
 import Astar
 import RRT
 import random
+import naroznik
 
-N = 100.0
+N = 50.0
 radius = 20
 center = [N / 4 + 10, N / 4 + 10]
 radius2 = 20
@@ -25,7 +26,7 @@ def isStateValid(state):
 
 def plan(space, planner, runTime, start, goal):
     ss = og.SimpleSetup(space)
-    ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
+    ss.setStateValidityChecker(ob.StateValidityCheckerFn(naroznik.isStateValid))
     ss.setStartAndGoalStates(start, goal)
     if planner == 'RRT':
         ss.setPlanner(RRT.RRT(ss.getSpaceInformation()))
@@ -97,14 +98,16 @@ if __name__ == '__main__':
     space.setBounds(bounds)
     # Set our robot's starting state to be random
     start = ob.State(space)
-    start[0], start[1] = random.randint(0, N), random.randint(0, N)
-    while not sqrt((start[0] - center[0]) ** 2 + (start[1] - center[1]) ** 2) > radius \
-            or not \
-            sqrt((start[0] - center2[0]) ** 2 + (start[1] - center2[1]) ** 2) > radius2:
-        start[0], start[1] = random.randint(0, N / 2), random.randint(0, N / 2)
+    start[0], start[1] = 18, 18
+    #start[0], start[1] = random.randint(0, N), random.randint(0, N)
+    #while not sqrt((start[0] - center[0]) ** 2 + (start[1] - center[1]) ** 2) > radius \
+    #        or not \
+    #        sqrt((start[0] - center2[0]) ** 2 + (start[1] - center2[1]) ** 2) > radius2:
+    #    start[0], start[1] = random.randint(0, N / 2), random.randint(0, N / 2)
 
     # Set our robot's goal state to be random
     goal = ob.State(space)
+
     goal[0], goal[1] = random.randint(0, N), random.randint(0, N)
     while not sqrt((goal[0] - center[0]) ** 2 + (goal[1] - center[1]) ** 2) > radius \
             or not \
@@ -128,10 +131,11 @@ if __name__ == '__main__':
         #print(print_path_txt(est_path))
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
-    circle1 = plt.Circle(center, radius, color='k')
-    circle2 = plt.Circle(center2, radius2, color='k')
-    plt.gcf().gca().add_artist(circle1)
-    plt.gcf().gca().add_artist(circle2)
+    #circle1 = plt.Circle(center, radius, color='k')
+    #circle2 = plt.Circle(center2, radius2, color='k')
+    #plt.gcf().gca().add_artist(circle1)
+    #plt.gcf().gca().add_artist(circle2)
+    naroznik.paint_obs(0, N)
     plt.legend(('RRT', 'A*', 'RRT-Connect', 'EST'))
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
