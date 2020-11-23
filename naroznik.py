@@ -10,7 +10,7 @@ import random
 def isStateValid(state):
     x = state.getX()
     y = state.getY()
-    if (21 >= x >= 5 and 21 >= y >= 20) or (21 >= x >= 20 and 21 >= y >= 5):
+    if (25 >= x >= 5 and 25 >= y >= 20) or (25 >= x >= 20 and 25 >= y >= 5):
         return False
     else:
         return True
@@ -18,8 +18,8 @@ def isStateValid(state):
 
 def paint_obs(LowB, HighB):
     plt.axis([LowB, HighB, LowB, HighB])
-    rec1 = plt.Rectangle([5, 20], 16, 1, color='k')
-    rec2 = plt.Rectangle([20, 5], 1, 16, color='k')
+    rec1 = plt.Rectangle([5, 20], 20, 5, color='k')
+    rec2 = plt.Rectangle([20, 5], 5, 20, color='k')
     plt.gcf().gca().add_artist(rec1)
     plt.gcf().gca().add_artist(rec2)
 

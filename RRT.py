@@ -74,7 +74,7 @@ class RRT(ob.Planner):
         new_node = Node(nearest_node, new_node_position)
         if si.checkMotion(nearest_node.position, new_node.position):
             Tree.append(new_node)
-            if distance(goal, Tree[-1].position) < self.dmax and si.checkMotion(Tree[-1].position, goal):
+            if si.distance(goal, Tree[-1].position) < self.dmax and si.checkMotion(Tree[-1].position, goal):
                 Tree.append(Node(Tree[-1], goal))
                 return GrowState.Reached
             else:
@@ -83,12 +83,13 @@ class RRT(ob.Planner):
             return GrowState.Trapped
 
     def near(self, random_state, Tree):
-        dlist = [distance(node.position, random_state) for node in Tree]
+        si = self.getSpaceInformation()
+        dlist = [si.distance(node.position, random_state) for node in Tree]
         return Tree[dlist.index(min(dlist))]
 
     def step(self, nearest_node, random_state):
-        d = distance(nearest_node.position, random_state)
-        # si.distance(nearest_node.position, random_state)
+        si = self.getSpaceInformation()
+        d = si.distance(nearest_node.position, random_state)
         if d > self.dmax:
             (xnear, ynear) = (nearest_node.position.getX(), nearest_node.position.getY())
             (xrand, yrand) = (random_state.getX(), random_state.getY())

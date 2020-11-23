@@ -9,7 +9,7 @@ import RRT
 import random
 import naroznik
 
-N = 50.0
+N = 100.0
 radius = 20
 center = [N / 4 + 10, N / 4 + 10]
 radius2 = 20
@@ -38,10 +38,12 @@ def plan(space, planner, runTime, start, goal):
         ss.setPlanner(og.EST(ss.getSpaceInformation()))
     else:
         print('Bad planner')
+    print(planner, ":")
     solved = ss.solve(runTime)
     if solved:
         ss.simplifySolution()
         path = ss.getSolutionPath()
+        print("Info:    Path length:", path.length())
         # print(path.printAsMatrix())
         path.interpolate(1000)
         return path.printAsMatrix()
