@@ -105,7 +105,10 @@ class Astar(ob.Planner):
             for child in children:
                 if child in closed_list:
                     continue
-                child.g = current_node.g + 1#math.sqrt((child.position.getX()-current_node.position.getX())**2+(child.position.getY()-current_node.position.getY())**2)#1 #si.distance(child.position, current_node.position)
+                if child.position.getYaw() % (math.pi/2) == 0:
+                    child.g = current_node.g + 1
+                else:
+                    child.g = current_node.g + math.sqrt(2)
                 child.h = goal.distanceGoal(child.position)
                 child.f = child.g + child.h
                 if len([i for i in open_list if child == i and child.g >= i.g]) > 0:

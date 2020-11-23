@@ -9,18 +9,18 @@ import RRT
 import random
 
 N = 100.0
-radius = 0
+radius = 20
 center = [N / 4 + 10, N / 4 + 10]
-radius2 = 00
+radius2 = 20
 center2 = [3 * N / 4 - 10, 3 * N / 4 - 10]
 
 
 def isStateValid(state):
     x = state.getX()
     y = state.getY()
-    #return (x - center[0]) ** 2 + (y - center[1]) ** 2 > radius ** 2 \
-    #       and sqrt((x - center2[0]) ** 2 + (y - center2[1]) ** 2) > radius2
-    return x > 75 or x < 80 and y < 39 or y > 41
+    return (x - center[0]) ** 2 + (y - center[1]) ** 2 > radius ** 2 \
+           and sqrt((x - center2[0]) ** 2 + (y - center2[1]) ** 2) > radius2
+    #return x > 75 or x < 80 and y < 39 or y > 41
 
 
 def plan(space, planner, runTime, start, goal):
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     space.setBounds(bounds)
     # Set our robot's starting state to be random
     start = ob.State(space)
-    start[0], start[1] = 5, 5#random.randint(0, N), random.randint(0, N)
+    start[0], start[1] = random.randint(0, N), random.randint(0, N)
     while not sqrt((start[0] - center[0]) ** 2 + (start[1] - center[1]) ** 2) > radius \
             or not \
             sqrt((start[0] - center2[0]) ** 2 + (start[1] - center2[1]) ** 2) > radius2:
@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
     # Set our robot's goal state to be random
     goal = ob.State(space)
-    goal[0], goal[1] = 35, 95 #random.randint(0, N), random.randint(0, N)
+    goal[0], goal[1] = random.randint(0, N), random.randint(0, N)
     while not sqrt((goal[0] - center[0]) ** 2 + (goal[1] - center[1]) ** 2) > radius \
             or not \
             sqrt((goal[0] - center2[0]) ** 2 + (goal[1] - center2[1]) ** 2) > radius2:
