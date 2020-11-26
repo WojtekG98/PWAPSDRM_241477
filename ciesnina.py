@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 def isStateValid(state):
     x = state.getX()
     y = state.getY()
-    if (25 >= x >= 5 and 25 >= y >= 20) or (25 >= x >= 20 and 25 >= y >= 5):
+    if (48 >= x >= 0 or 100 >= x >= 52) and 52 >= y >= 48:
         return False
     else:
         return True
@@ -11,15 +11,15 @@ def isStateValid(state):
 def isStateValid2(state):
     x = state[0]
     y = state[1]
-    if (25 >= x >= 5 and 25 >= y >= 20) or (25 >= x >= 20 and 25 >= y >= 5):
+    if (48 >= x >= 0 or 102 >= x >= 52) and 52 >= y >= 48:
         return False
     else:
         return True
 
 def paint_obs(LowB, HighB):
     plt.axis([LowB, HighB, LowB, HighB])
-    rec1 = plt.Rectangle([5, 20], 20, 5, color='k')
-    rec2 = plt.Rectangle([20, 5], 5, 20, color='k')
+    rec1 = plt.Rectangle([0, 48], 48, 4, color='k')
+    rec2 = plt.Rectangle([52, 48], 48, 4, color='k')
     plt.gcf().gca().add_artist(rec1)
     plt.gcf().gca().add_artist(rec2)
 

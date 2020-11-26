@@ -75,7 +75,6 @@ class Astar(ob.Planner):
         heapq.heappush(open_list, start_node)
         while len(open_list) > 0 and not ptc():
             current_node = heapq.heappop(open_list)
-
             if current_node == end_node:  # if we hit the goal
                 current = current_node
                 path = []
