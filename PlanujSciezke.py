@@ -1,5 +1,5 @@
 import Astar
-import WygladzSciezke
+import Plan
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
@@ -89,10 +89,10 @@ if __name__ == '__main__':
         goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
 
     Path = plan(5, 'RRT', 'path.txt', space, start, goal)
-    WygladzSciezke.plot_path(Path, 'ro-', 0, N)
+    Plan.plot_path(Path, 'ro-', 0, N)
     Path = plan(600, 'Astar', 'path2.txt', space, start, goal)
     if Path:
-        WygladzSciezke.plot_path(Path, 'bo-', 0, N)
+        Plan.plot_path(Path, 'bo-', 0, N)
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
     plt.legend(('RRT', 'A*'))

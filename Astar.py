@@ -97,7 +97,8 @@ class Astar(ob.Planner):
 
                 if not si.checkMotion(current_node.position, node_position):
                     continue
-
+                if not si.satisfiesBounds(node_position):
+                    continue
                 new_node = Node(current_node, node_position)
                 children.append(new_node)
 

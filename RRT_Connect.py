@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
-import WygladzSciezke
+import Plan
 import math
 from enum import Enum
 
@@ -219,7 +219,7 @@ def plan():
         path = path.printAsMatrix()
         plt.plot(start[0], start[1], 'g*')
         plt.plot(goal[0], goal[1], 'y*')
-        WygladzSciezke.plot_path(path, 'b-', 0, 100)
+        Plan.plot_path(path, 'b-', 0, 100)
         plt.show()
 
 
