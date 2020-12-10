@@ -1,4 +1,3 @@
-import sys
 from ompl import base as ob
 from ompl import geometric as og
 import matplotlib.pyplot as plt
@@ -12,11 +11,11 @@ import ciesnina
 import losoweprzeszkody
 import labirynt
 
-
 cies = 0
-lab = 1
-loso = 0
+lab = 0
+loso = 1
 naro = 0
+inna = 0
 
 N = 100.0
 radius = 20
@@ -30,7 +29,6 @@ def isStateValid(state):
     y = state.getY()
     return (x - center[0]) ** 2 + (y - center[1]) ** 2 > radius ** 2 \
            and sqrt((x - center2[0]) ** 2 + (y - center2[1]) ** 2) > radius2
-
 
 
 def plan(space, planner, runTime, start, goal):
@@ -71,43 +69,32 @@ def plan(space, planner, runTime, start, goal):
 
 def print_path_txt(path):
     plt.axis([0, N, 0, N])
-    verts = []
+    matrix = []
     for line in path.split("\n"):
-        x = []
+        tmp = []
         for item in line.split():
-            x.append(float(item))
-        if len(x) is not 0:
-            verts.append(list(x))
-    for vert in verts:
-        vert[2] = vert[2]*180/pi
-    #x = []
-    #y = []
-    #yaw = []
-    #for i in range(0, len(verts)):
-    #    x.append(verts[i][0])
-    #    y.append(verts[i][1])
-    #    yaw.append(verts[i][2])
-    #for i in range(0, len(yaw)):
-    #    yaw[i] = yaw[i] * 180 / pi
-    return verts
+            tmp.append(float(item))
+        if len(tmp) is not 0:
+            matrix.append(list(tmp))
+    for item in matrix:
+        item[2] = item[2] * 180 / pi
+    return matrix
 
 
 def plot_path(path, style, LowB, HighB):
     plt.axis([LowB, HighB, LowB, HighB])
-    verts = []
+    matrix = []
     for line in path.split("\n"):
-        x = []
+        tmp = []
         for item in line.split():
-            x.append(float(item))
-        if len(x) is not 0:
-            verts.append(list(x))
+            tmp.append(float(item))
+        if len(tmp) is not 0:
+            matrix.append(list(tmp))
     x = []
     y = []
-    yaw = []
-    for i in range(0, len(verts)):
-        x.append(verts[i][0])
-        y.append(verts[i][1])
-        yaw.append(verts[i][2])
+    for item in matrix:
+        x.append(item[0])
+        y.append(item[1])
     plt.plot(x, y, style)
 
 
@@ -128,10 +115,10 @@ if __name__ == '__main__':
     if loso == 1:
         start[0], start[1] = 25, 25
         goal[0], goal[1] = 90, 80
-    if not lab == 1:
+    if lab == 1:
         start[0], start[1] = 5, 90
         goal[0], goal[1] = 90, 5
-    else:
+    if inna == 1:
         start[0], start[1] = random.randint(0, N), random.randint(0, N)
         goal[0], goal[1] = random.randint(0, N), random.randint(0, N)
         if lab == 1:
@@ -141,14 +128,19 @@ if __name__ == '__main__':
                 goal[0], goal[1] = random.randint(0, N), random.randint(0, N)
         if loso == 1:
             while not losoweprzeszkody.isStateValid2(start):
-                start[0], start[1] = random.randint(0, N/2), random.randint(0, N/2)
+                start[0], start[1] = random.randint(0, N / 2), random.randint(0, N / 2)
             while not losoweprzeszkody.isStateValid2(goal):
-                goal[0], goal[1] = random.randint(N/2, N), random.randint(N/2, N)
+                goal[0], goal[1] = random.randint(N / 2, N), random.randint(N / 2, N)
         if cies == 1:
             while not ciesnina.isStateValid2(start):
-                start[0], start[1] = random.randint(0, N), random.randint(0, N/2)
+                start[0], start[1] = random.randint(0, N), random.randint(0, N / 2)
             while not ciesnina.isStateValid2(goal):
-                goal[0], goal[1] = random.randint(0, N), random.randint(N/2, N)
+                goal[0], goal[1] = random.randint(0, N), random.randint(N / 2, N)
+        if naro == 1:
+            while not naroznik.isStateValid2(start):
+                start[0], start[1] = random.randint(0, 19), random.randint(0, 19)
+            while not naroznik.isStateValid2(goal):
+                goal[0], goal[1] = random.randint(19, N), random.randint(19, N)
     print("start: ", start[0], start[1])
     print("goal: ", goal[0], goal[1])
     rrt_path = plan(space, 'RRT', 1000, start, goal)
@@ -241,4 +233,3 @@ if __name__ == '__main__':
     plt.plot(start[0], start[1], 'g*')
     plt.plot(goal[0], goal[1], 'y*')
     plt.savefig("path.png")
-    #plt.show()
